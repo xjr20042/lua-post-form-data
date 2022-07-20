@@ -1,4 +1,6 @@
 local http = require 'resty.http'
+local cjson = require("cjson")
+
 local _M = {}
 function _M.generate_payload(args_table, boundary)
     local line_end_str = '\r\n'
@@ -7,10 +9,10 @@ function _M.generate_payload(args_table, boundary)
     for k, v in pairs(args_table) do
         local param = {
             '--' .. boundary,
-            'Content-Disposition: form-data; name=' .. k .. ';',
-            'Content-Type: text/plain',
+            'Content-Disposition: form-data; name="' .. k .. '"',
+            --'Content-Type: text/plain',
             '',
-            v
+            type(v) == "table" and cjson.encode(v) or v,
         }
         payload = payload .. table.concat(param, line_end_str) .. line_end_str
     end
@@ -20,14 +22,13 @@ end
 
 function _M.http_post(url, args, boundary)
     local httpc = http.new()
-    httpc:set_timeout(20 * 60 * 1000)
+    httpc:set_timeout(2*1000)
 
     if not boundary then
-        boundary = 'wL36Yn8afVp8Ag7AmP8qZ0SA4n1v9T' --分割符
+        boundary = 'wL36Yn8afVp8Ag7AmP8qZ0SA4n1v9T'
     end
-
-    local res, err =
-        httpc:request_uri(
+    --local res, err =
+    return httpc:request_uri(
         url,
         {
             method = 'POST',
@@ -39,11 +40,7 @@ function _M.http_post(url, args, boundary)
             keepalive_pool = 30
         }
     )
-    if err then
-        local msg = 'url:' .. url .. '\nerr:' .. err
-        error(msg)
-    end
-    return res
 end
 
 return _M
+
